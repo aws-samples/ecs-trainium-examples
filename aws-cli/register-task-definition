@@ -1,0 +1,44 @@
+aws ecs register-task-definition \
+--family mlp-trainium \
+--container-definitions '[{    
+    "name": "my-container-1",    
+    "image": "{your-account-id}.dkr.ecr.us-east-1.amazonaws.com/{your-ecr-repo-name}",
+    "cpu": 0,
+    "memoryReservation": 1000,
+    "portMappings": [],
+    "essential": true,
+    "environment": [],
+    "mountPoints": [],
+    "volumesFrom": [],
+    "logConfiguration": {
+        "logDriver": "awslogs",
+        "options": {
+            "awslogs-create-group": "true",
+            "awslogs-group": "/ecs/task-logs",
+            "awslogs-region": "us-east-1",
+            "awslogs-stream-prefix": "ecs"
+        }
+    },
+    "linuxParameters": {
+        "capabilities": {
+            "add": [
+                "IPC_LOCK"
+            ]
+        },
+        "devices": [{
+            "hostPath": "/dev/neuron0",
+            "containerPath": "/dev/neuron0",
+            "permissions": ["read", "write"]
+        }]
+    }
+}]' \
+--requires-compatibilities EC2
+--cpu "8192" \
+--memory "16384" \
+--placement-constraints '[{
+    "type": "memberOf",
+    "expression": "attribute:ecs.instance-type == trn1.2xlarge"
+}, {
+    "type": "memberOf",
+    "expression": "attribute:ecs.os-type == linux"
+}]'

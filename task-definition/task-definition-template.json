@@ -1,0 +1,58 @@
+{
+  "family": "mlp_trainium",
+  "containerDefinitions": [
+      {
+          "name": "mlp_trainium",
+          "image": "{your-account-id}.dkr.ecr.us-east-1.amazonaws.com/{your-ecr-repo-name}",
+          "cpu": 0,
+          "memoryReservation": 1000,
+          "portMappings": [],
+          "essential": true,
+          "environment": [],
+          "mountPoints": [],
+          "volumesFrom": [],
+          "linuxParameters": {
+              "capabilities": {
+                  "add": [
+                      "IPC_LOCK"
+                  ]
+              },
+              "devices": [
+                  {
+                      "hostPath": "/dev/neuron0",
+                      "containerPath": "/dev/neuron0",
+                      "permissions": [
+                          "read",
+                          "write"
+                      ]
+                  }
+              ]
+          },
+          "logConfiguration": {
+              "logDriver": "awslogs",
+              "options": {
+                  "awslogs-create-group": "true",
+                  "awslogs-group": "/ecs/task-logs",
+                  "awslogs-region": "us-east-1",
+                  "awslogs-stream-prefix": "ecs"
+              }
+          }
+      }
+  ],
+  "networkMode": "awsvpc",
+  "placementConstraints": [
+      {
+          "type": "memberOf",
+          "expression": "attribute:ecs.os-type == linux"
+      },
+      {
+          "type": "memberOf",
+          "expression": "attribute:ecs.instance-type == trn1.2xlarge"
+      }
+  ],
+  "requiresCompatibilities": [
+      "EC2"
+  ],
+  "cpu": "1024",
+  "memory": "3072"
+}
