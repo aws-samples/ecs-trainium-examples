@@ -1,0 +1,904 @@
+
+
+
+{
+  "AWSTemplateFormatVersion": "2010-09-09",
+  "Description": "Template Trainium on ECS",
+  "Parameters": {
+     "Environment": {
+        "Type": "String",
+        "Default": "aiml",
+        "Description": "Type your environment stack"
+     },
+     "VPCData": {
+        "Type": "CommaDelimitedList",
+        "Default": "aiml,10.1.0.0/16",
+        "Description": "Type your VPC name and IP"
+     },
+     "AZIds": {
+        "Type": "CommaDelimitedList",
+        "Description": "Type 2 VPCs AZ:",
+        "Default": "us-east-1a, us-east-1f"
+     },
+     "SubnetPriv1aData": {
+        "Type": "CommaDelimitedList",
+        "Default": "subnet-priv-1a-aiml,10.1.0.0/24",
+        "Description": "Subnet name and IP"
+     },
+     "SubnetPriv1fData": {
+        "Type": "CommaDelimitedList",
+        "Default": "subnet-priv-1f-aiml,10.1.1.0/24",
+        "Description": "Subnet name and IP"
+     },
+     "SubnetPub1aData": {
+        "Type": "CommaDelimitedList",
+        "Default": "subnet-pub-1a-aiml,10.1.2.0/24",
+        "Description": "Subnet name and IP"
+     },
+     "SubnetPub1fData": {
+        "Type": "CommaDelimitedList",
+        "Default": "subnet-pub-1f-aiml,10.1.3.0/24",
+        "Description": "Subnet name and IP"
+     },
+     "EcsClusterName": {
+        "Type": "String",
+        "Description": "Digite o nome do seu Cluster de ECS",
+        "Default": "aiml"
+     },
+     "EcsAmiId": {
+        "Type": "String",
+        "Description": "AMI ID",
+        "Default": "ami-0064526454c3d9088"
+     },
+     "EcsInstanceType": {
+        "Type": "String",
+        "Description": "EC2 Instance Type",
+        "Default": "trn1.2xlarge"
+     },
+     "KeyName": {
+        "Type": "String",
+        "Description": "EC2 key",
+        "Default": ""
+     },
+     "EC2VolumeSize": {
+        "Type": "String",
+        "Description": "EC2 Volume Size",
+        "Default": "30"
+     },
+     "AsgMaxSize": {
+        "Type": "Number",
+        "Description": "Maximum Size for Autoscaling Security Group",
+        "Default": "2"
+     },
+     "ALBName": {
+        "Type": "String",
+        "Description": "ECS ALB name",
+        "Default": "alb-aiml"
+     }
+  },
+  "Resources": {
+     "vpc": {
+        "Type": "AWS::EC2::VPC",
+        "Properties": {
+           "CidrBlock": {
+              "Fn::Select": [
+                 "1",
+                 {
+                    "Ref": "VPCData"
+                 }
+              ]
+           },
+           "InstanceTenancy": "default",
+           "EnableDnsSupport": "true",
+           "EnableDnsHostnames": "true",
+           "Tags": [
+              {
+                 "Key": "Environment",
+                 "Value": {
+                    "Ref": "Environment"
+                 }
+              },
+              {
+                 "Key": "Name",
+                 "Value": {
+                    "Fn::Select": [
+                       "0",
+                       {
+                          "Ref": "VPCData"
+                       }
+                    ]
+                 }
+              }
+           ]
+        }
+     },
+     "subnetprivada1a": {
+        "Type": "AWS::EC2::Subnet",
+        "Properties": {
+           "CidrBlock": {
+              "Fn::Select": [
+                 "1",
+                 {
+                    "Ref": "SubnetPriv1aData"
+                 }
+              ]
+           },
+           "AvailabilityZone": {
+              "Fn::Select": [
+                 "0",
+                 {
+                    "Ref": "AZIds"
+                 }
+              ]
+           },
+           "VpcId": {
+              "Ref": "vpc"
+           },
+           "Tags": [
+              {
+                 "Key": "Name",
+                 "Value": {
+                    "Fn::Select": [
+                       "0",
+                       {
+                          "Ref": "SubnetPriv1aData"
+                       }
+                    ]
+                 }
+              }
+           ]
+        }
+     },
+     "subnetpublica1a": {
+        "Type": "AWS::EC2::Subnet",
+        "Properties": {
+           "CidrBlock": {
+              "Fn::Select": [
+                 "1",
+                 {
+                    "Ref": "SubnetPub1aData"
+                 }
+              ]
+           },
+           "AvailabilityZone": {
+              "Fn::Select": [
+                 "0",
+                 {
+                    "Ref": "AZIds"
+                 }
+              ]
+           },
+           "VpcId": {
+              "Ref": "vpc"
+           },
+           "Tags": [
+              {
+                 "Key": "Name",
+                 "Value": {
+                    "Fn::Select": [
+                       "0",
+                       {
+                          "Ref": "SubnetPub1aData"
+                       }
+                    ]
+                 }
+              }
+           ]
+        }
+     },
+     "subnetpublica1f": {
+        "Type": "AWS::EC2::Subnet",
+        "Properties": {
+           "CidrBlock": {
+              "Fn::Select": [
+                 "1",
+                 {
+                    "Ref": "SubnetPub1fData"
+                 }
+              ]
+           },
+           "AvailabilityZone": {
+              "Fn::Select": [
+                 "1",
+                 {
+                    "Ref": "AZIds"
+                 }
+              ]
+           },
+           "VpcId": {
+              "Ref": "vpc"
+           },
+           "Tags": [
+              {
+                 "Key": "Name",
+                 "Value": {
+                    "Fn::Select": [
+                       "0",
+                       {
+                          "Ref": "SubnetPub1fData"
+                       }
+                    ]
+                 }
+              }
+           ]
+        }
+     },
+     "subnetprivada1f": {
+        "Type": "AWS::EC2::Subnet",
+        "Properties": {
+           "CidrBlock": {
+              "Fn::Select": [
+                 "1",
+                 {
+                    "Ref": "SubnetPriv1fData"
+                 }
+              ]
+           },
+           "AvailabilityZone": {
+              "Fn::Select": [
+                 "1",
+                 {
+                    "Ref": "AZIds"
+                 }
+              ]
+           },
+           "VpcId": {
+              "Ref": "vpc"
+           },
+           "Tags": [
+              {
+                 "Key": "Name",
+                 "Value": {
+                    "Fn::Select": [
+                       "0",
+                       {
+                          "Ref": "SubnetPriv1fData"
+                       }
+                    ]
+                 }
+              }
+           ]
+        }
+     },
+     "igw": {
+        "Type": "AWS::EC2::InternetGateway",
+        "Properties": {
+           "Tags": [
+              {
+                 "Key": "Environment",
+                 "Value": {
+                    "Ref": "Environment"
+                 }
+              }
+           ]
+        }
+     },
+     "NAT": {
+        "Type": "AWS::EC2::NatGateway",
+        "Properties": {
+           "AllocationId": {
+              "Fn::GetAtt": [
+                 "EIP",
+                 "AllocationId"
+              ]
+           },
+           "SubnetId": {
+              "Ref": "subnetpublica1a"
+           }
+        }
+     },
+     "EIP": {
+        "Type": "AWS::EC2::EIP",
+        "Properties": {
+           "Domain": "vpc"
+        }
+     },
+     "dopt": {
+        "Type": "AWS::EC2::DHCPOptions",
+        "Properties": {
+           "DomainName": "ec2.internal",
+           "DomainNameServers": [
+              "AmazonProvidedDNS"
+           ]
+        }
+     },
+     "acl": {
+        "Type": "AWS::EC2::NetworkAcl",
+        "Properties": {
+           "VpcId": {
+              "Ref": "vpc"
+           }
+        }
+     },
+     "rtbcustom": {
+        "Type": "AWS::EC2::RouteTable",
+        "Properties": {
+           "VpcId": {
+              "Ref": "vpc"
+           },
+           "Tags": [
+              {
+                 "Key": "Name",
+                 "Value": {
+                    "Fn::Join": [
+                       "-",
+                       [
+                          {
+                             "Ref": "Environment"
+                          },
+                          "Custom-Route-Table"
+                       ]
+                    ]
+                 }
+              }
+           ]
+        }
+     },
+     "rtbmain": {
+        "Type": "AWS::EC2::RouteTable",
+        "Properties": {
+           "VpcId": {
+              "Ref": "vpc"
+           },
+           "Tags": [
+              {
+                 "Key": "Name",
+                 "Value": {
+                    "Fn::Join": [
+                       "-",
+                       [
+                          {
+                             "Ref": "Environment"
+                          },
+                          "Main-Route-Table"
+                       ]
+                    ]
+                 }
+              }
+           ]
+        }
+     },
+     "EcsCluster": {
+        "Type": "AWS::ECS::Cluster",
+        "Properties": {
+           "ClusterName": {
+              "Ref": "EcsClusterName"
+           }
+        }
+     },
+     "asgEC2ContainerService": {
+        "Type": "AWS::AutoScaling::AutoScalingGroup",
+        "Properties": {
+           "AvailabilityZones": [
+              {
+                 "Fn::Select": [
+                    "0",
+                    {
+                       "Ref": "AZIds"
+                    }
+                 ]
+              },
+              {
+                 "Fn::Select": [
+                    "1",
+                    {
+                       "Ref": "AZIds"
+                    }
+                 ]
+              }
+           ],
+           "Cooldown": "300",
+           "DesiredCapacity": "2",
+           "HealthCheckGracePeriod": "0",
+           "HealthCheckType": "EC2",
+           "MaxSize": {
+              "Ref": "AsgMaxSize"
+           },
+           "MinSize": "2",
+           "VPCZoneIdentifier": [
+              {
+                 "Ref": "subnetprivada1a"
+              },
+              {
+                 "Ref": "subnetprivada1f"
+              }
+           ],
+           "LaunchConfigurationName": {
+              "Ref": "lcEC2ContainerService"
+           },
+           "Tags": [
+              {
+                 "Key": "Description",
+                 "Value": "EC2 faz parte do Auto Scaling group de ECS",
+                 "PropagateAtLaunch": true
+              },
+              {
+                 "Key": "Environment",
+                 "Value": {
+                    "Ref": "Environment"
+                 },
+                 "PropagateAtLaunch": true
+              },
+              {
+                 "Key": "Name",
+                 "Value": {
+                    "Fn::Join": [
+                       "-",
+                       [
+                          "ECSInstance",
+                          {
+                             "Ref": "Environment"
+                          }
+                       ]
+                    ]
+                 },
+                 "PropagateAtLaunch": true
+              }
+           ],
+           "TerminationPolicies": [
+              "Default"
+           ]
+        }
+     },
+     "lcEC2ContainerService": {
+        "Type": "AWS::AutoScaling::LaunchConfiguration",
+        "Properties": {
+           "AssociatePublicIpAddress": false,
+           "ImageId": {
+              "Ref": "EcsAmiId"
+           },
+           "UserData": {
+              "Fn::Base64": {
+               "Fn::Sub": "#!/bin/bash\necho \"ECS_CLUSTER=${EcsCluster} \" >> /etc/ecs/ecs.config;\n\ntee /etc/yum.repos.d/neuron.repo > /dev/null <<EOF\n[neuron]\nname=Neuron YUM Repository\nbaseurl=https://yum.repos.neuron.amazonaws.com\nenabled=1\nmetadata_expire=0\nEOF\nrpm --import https://yum.repos.neuron.amazonaws.com/GPG-PUB-KEY-AMAZON-AWS-NEURON.PUB\n\nyum update -y\n\nyum install kernel-devel-$(uname -r) kernel-headers-$(uname -r) -y\nyum install aws-neuronx-dkms-2.*  -y\nyum install aws-neuronx-collectives-2.* -y\nyum install aws-neuronx-runtime-lib-2.* -y\nyum install aws-neuronx-tools-2.* -y"
+            }
+           },
+           "InstanceType": {
+              "Ref": "EcsInstanceType"
+           },
+           "KeyName": {
+              "Ref": "KeyName"
+           },
+           "IamInstanceProfile": "ecsInstanceRole",
+           "InstanceMonitoring": "true",
+           "SecurityGroups": [
+              {
+                 "Ref": "sgdefault"
+              },
+              {
+                 "Ref": "sgHTTP"
+              }
+           ],
+           "BlockDeviceMappings": [
+              {
+                 "DeviceName": "/dev/xvdcz",
+                 "Ebs": {
+                    "VolumeSize": {
+                       "Ref": "EC2VolumeSize"
+                    }
+                 }
+              }
+           ]
+        },
+        "DependsOn": "EcsCluster"
+     },
+     "CapacityProviderECS": {
+       "Type": "AWS::ECS::CapacityProvider",
+       "Properties": {
+           "AutoScalingGroupProvider": {
+               "AutoScalingGroupArn": {"Ref": "asgEC2ContainerService"},
+               "ManagedScaling": {
+                   "MaximumScalingStepSize": 10,
+                   "MinimumScalingStepSize": 1,
+                   "Status": "ENABLED",
+                   "TargetCapacity": 100
+               }
+           }
+       }
+   },
+     "loadBalancer": {
+        "Type": "AWS::ElasticLoadBalancingV2::LoadBalancer",
+        "Properties": {
+           "Name": {
+              "Ref": "ALBName"
+           },
+           "Scheme": "internet-facing",
+           "Subnets": [
+              {
+                 "Ref": "subnetpublica1a"
+              },
+              {
+                 "Ref": "subnetpublica1f"
+              }
+           ],
+           "LoadBalancerAttributes": [
+              {
+                 "Key": "idle_timeout.timeout_seconds",
+                 "Value": "60"
+              }
+           ],
+           "SecurityGroups": [
+              {
+                 "Ref": "sgHTTPalb"
+              },
+              {
+                 "Ref": "sgdefault"
+              }
+           ]
+        }
+     },
+     "HttpListener": {
+        "Type": "AWS::ElasticLoadBalancingV2::Listener",
+        "Properties": {
+           "DefaultActions": [
+              {
+                 "Type": "forward",
+                 "TargetGroupArn": {
+                    "Ref": "TargetGroupDefault"
+                 }
+              }
+           ],
+           "LoadBalancerArn": {
+              "Ref": "loadBalancer"
+           },
+           "Port": "80",
+           "Protocol": "HTTP"
+        }
+     },
+     "TargetGroupDefault": {
+        "Type": "AWS::ElasticLoadBalancingV2::TargetGroup",
+        "Properties": {
+           "HealthCheckIntervalSeconds": 30,
+           "HealthCheckPath": "/",
+           "HealthCheckProtocol": "HTTP",
+           "HealthCheckTimeoutSeconds": 5,
+           "HealthyThresholdCount": 5,
+           "Matcher": {
+              "HttpCode": "200"
+           },
+           "Name": {
+              "Fn::Join": [
+                 "-",
+                 [
+                    {
+                       "Ref": "Environment"
+                    },
+                    "default"
+                 ]
+              ]
+           },
+           "Port": 80,
+           "Protocol": "HTTP",
+           "TargetGroupAttributes": [
+              {
+                 "Key": "deregistration_delay.timeout_seconds",
+                 "Value": "300"
+              }
+           ],
+           "UnhealthyThresholdCount": 3,
+           "VpcId": {
+              "Ref": "vpc"
+           },
+           "Tags": [
+              {
+                 "Key": "Environment",
+                 "Value": {
+                    "Ref": "Environment"
+                 }
+              }
+           ]
+        }
+     },
+     "ecsServiceRole": {
+        "Type": "AWS::IAM::Role",
+        "Properties": {
+           "RoleName": {
+              "Fn::Join": [
+                 "-",
+                 [
+                    "ecsServiceRole",
+                    {
+                       "Ref": "Environment"
+                    }
+                 ]
+              ]
+           },
+           "AssumeRolePolicyDocument": {
+              "Version": "2012-10-17",
+              "Statement": [
+                 {
+                    "Effect": "Allow",
+                    "Principal": {
+                       "Service": [
+                          "ecs.amazonaws.com"
+                       ]
+                    },
+                    "Action": [
+                       "sts:AssumeRole"
+                    ]
+                 }
+              ]
+           },
+           "Path": "/",
+           "ManagedPolicyArns": [
+              "arn:aws:iam::aws:policy/AmazonRDSFullAccess",
+              "arn:aws:iam::aws:policy/AmazonSQSFullAccess",
+              "arn:aws:iam::aws:policy/service-role/AmazonEC2ContainerServiceRole"
+           ]
+        }
+     },
+     "sgHTTP": {
+        "Type": "AWS::EC2::SecurityGroup",
+        "Properties": {
+           "GroupDescription": "Regra de acesso a porta 80",
+           "VpcId": {
+              "Ref": "vpc"
+           },
+           "Tags": [
+              {
+                 "Key": "Name",
+                 "Value": {
+                    "Fn::Join": [
+                       "-",
+                       [
+                          {
+                             "Ref": "Environment"
+                          },
+                          "HTTP"
+                       ]
+                    ]
+                 }
+              }
+           ]
+        }
+     },
+     "sgHTTPalb": {
+        "Type": "AWS::EC2::SecurityGroup",
+        "Properties": {
+           "GroupDescription": "Regra de acesso a porta 80 e 443 publico",
+           "VpcId": {
+              "Ref": "vpc"
+           },
+           "Tags": [
+              {
+                 "Key": "Name",
+                 "Value": {
+                    "Fn::Join": [
+                       "-",
+                       [
+                          {
+                             "Ref": "Environment"
+                          },
+                          "ALB-HTTP/HTTPS"
+                       ]
+                    ]
+                 }
+              }
+           ]
+        }
+     },
+     "sgdefault": {
+        "Type": "AWS::EC2::SecurityGroup",
+        "Properties": {
+           "GroupDescription": "default VPC security group",
+           "VpcId": {
+              "Ref": "vpc"
+           }
+        }
+     },
+     "acl1": {
+        "Type": "AWS::EC2::NetworkAclEntry",
+        "Properties": {
+           "CidrBlock": "0.0.0.0/0",
+           "Egress": "true",
+           "Protocol": "-1",
+           "RuleAction": "allow",
+           "RuleNumber": "100",
+           "NetworkAclId": {
+              "Ref": "acl"
+           }
+        }
+     },
+     "acl2": {
+        "Type": "AWS::EC2::NetworkAclEntry",
+        "Properties": {
+           "CidrBlock": "0.0.0.0/0",
+           "Protocol": "-1",
+           "RuleAction": "allow",
+           "RuleNumber": "100",
+           "NetworkAclId": {
+              "Ref": "acl"
+           }
+        }
+     },
+     "subnetacl1": {
+        "Type": "AWS::EC2::SubnetNetworkAclAssociation",
+        "Properties": {
+           "NetworkAclId": {
+              "Ref": "acl"
+           },
+           "SubnetId": {
+              "Ref": "subnetpublica1f"
+           }
+        }
+     },
+     "subnetacl2": {
+        "Type": "AWS::EC2::SubnetNetworkAclAssociation",
+        "Properties": {
+           "NetworkAclId": {
+              "Ref": "acl"
+           },
+           "SubnetId": {
+              "Ref": "subnetprivada1f"
+           }
+        }
+     },
+     "subnetacl3": {
+        "Type": "AWS::EC2::SubnetNetworkAclAssociation",
+        "Properties": {
+           "NetworkAclId": {
+              "Ref": "acl"
+           },
+           "SubnetId": {
+              "Ref": "subnetpublica1a"
+           }
+        }
+     },
+     "subnetacl4": {
+        "Type": "AWS::EC2::SubnetNetworkAclAssociation",
+        "Properties": {
+           "NetworkAclId": {
+              "Ref": "acl"
+           },
+           "SubnetId": {
+              "Ref": "subnetprivada1a"
+           }
+        }
+     },
+     "gw1": {
+        "Type": "AWS::EC2::VPCGatewayAttachment",
+        "Properties": {
+           "VpcId": {
+              "Ref": "vpc"
+           },
+           "InternetGatewayId": {
+              "Ref": "igw"
+           }
+        }
+     },
+     "subnetroute1": {
+        "Type": "AWS::EC2::SubnetRouteTableAssociation",
+        "Properties": {
+           "RouteTableId": {
+              "Ref": "rtbcustom"
+           },
+           "SubnetId": {
+              "Ref": "subnetpublica1f"
+           }
+        }
+     },
+     "subnetroute2": {
+        "Type": "AWS::EC2::SubnetRouteTableAssociation",
+        "Properties": {
+           "RouteTableId": {
+              "Ref": "rtbcustom"
+           },
+           "SubnetId": {
+              "Ref": "subnetpublica1a"
+           }
+        }
+     },
+     "subnetroute3": {
+        "Type": "AWS::EC2::SubnetRouteTableAssociation",
+        "Properties": {
+           "RouteTableId": {
+              "Ref": "rtbmain"
+           },
+           "SubnetId": {
+              "Ref": "subnetprivada1f"
+           }
+        }
+     },
+     "subnetroute5": {
+        "Type": "AWS::EC2::SubnetRouteTableAssociation",
+        "Properties": {
+           "RouteTableId": {
+              "Ref": "rtbmain"
+           },
+           "SubnetId": {
+              "Ref": "subnetprivada1a"
+           }
+        }
+     },
+     "route2": {
+        "Type": "AWS::EC2::Route",
+        "Properties": {
+           "DestinationCidrBlock": "0.0.0.0/0",
+           "RouteTableId": {
+              "Ref": "rtbcustom"
+           },
+           "GatewayId": {
+              "Ref": "igw"
+           }
+        },
+        "DependsOn": "gw1"
+     },
+
+     "Route4": {
+        "Type": "AWS::EC2::Route",
+        "Properties": {
+           "RouteTableId": {
+              "Ref": "rtbmain"
+           },
+           "DestinationCidrBlock": "0.0.0.0/0",
+           "NatGatewayId": {
+              "Ref": "NAT"
+           }
+        }
+     },
+     "dchpassoc1": {
+        "Type": "AWS::EC2::VPCDHCPOptionsAssociation",
+        "Properties": {
+           "VpcId": {
+              "Ref": "vpc"
+           },
+           "DhcpOptionsId": {
+              "Ref": "dopt"
+           }
+        }
+     },
+     "ingress1": {
+        "Type": "AWS::EC2::SecurityGroupIngress",
+        "Properties": {
+           "GroupId": {
+              "Ref": "sgHTTPalb"
+           },
+           "IpProtocol": "tcp",
+           "FromPort": "80",
+           "ToPort": "80",
+           "CidrIp": "0.0.0.0/0"
+        }
+     },
+     "ingress2": {
+        "Type": "AWS::EC2::SecurityGroupIngress",
+        "Properties": {
+           "GroupId": {
+              "Ref": "sgHTTPalb"
+           },
+           "IpProtocol": "tcp",
+           "FromPort": "443",
+           "ToPort": "443",
+           "CidrIp": "0.0.0.0/0"
+        }
+     },
+     "egress1": {
+        "Type": "AWS::EC2::SecurityGroupEgress",
+        "Properties": {
+           "GroupId": {
+              "Ref": "sgHTTP"
+           },
+           "IpProtocol": "-1",
+           "CidrIp": "0.0.0.0/0"
+        }
+     },
+     "egress2": {
+        "Type": "AWS::EC2::SecurityGroupEgress",
+        "Properties": {
+           "GroupId": {
+              "Ref": "sgdefault"
+           },
+           "IpProtocol": "-1",
+           "CidrIp": "0.0.0.0/0"
+        }
+     },
+     "egress3": {
+      "Type": "AWS::EC2::SecurityGroupEgress",
+      "Properties": {
+         "GroupId": {
+            "Ref": "sgHTTPalb"
+         },
+         "IpProtocol": "-1",
+         "CidrIp": "0.0.0.0/0"
+      }
+   }
+  }
+}
