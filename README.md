@@ -21,7 +21,7 @@ This files includes:
 - Autoscaling Group
 - EC2 instance trn1.2xlarge
 - ECS AMI ID
-- ECS Cluster
+- ECS Cluster 
 
 
 ## License
